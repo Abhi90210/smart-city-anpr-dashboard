@@ -142,7 +142,7 @@ if navigation == "City Overview & 3D Map":
             return "background-color: #155724; color: white"
 
         st.dataframe(
-            analytics_df[["Corridor", "Avg Speed (km/h)", "Congestion Index", "Status"]].style.applymap(
+            analytics_df[["Corridor", "Avg Speed (km/h)", "Congestion Index", "Status"]].style.map(
                 highlight_status, subset=["Status"]
             ),
             use_container_width=True,
