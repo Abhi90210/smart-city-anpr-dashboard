@@ -7,6 +7,7 @@ import pydeck as pdk
 import random
 from datetime import datetime, timedelta
 from engine import CityTrafficEngine, seed_mock_city_data, ANPRDetection
+from copilot import generate_fir_and_dispatch
 
 st.set_page_config(
     page_title="AI Smart City ANPR Matrix",
@@ -222,30 +223,6 @@ elif navigation == "Vehicle Forensic Tracker":
             )
 
 # MODULE 3: AI THREAT & VIOLATION CENTER
-elif navigation == "AI Threat & Violation Center":
-    st.subheader("🚨 Automated Security & Anomaly Logs")
-
-    anomalies_df = engine.detect_anomalies()
-
-    if not anomalies_df.empty:
-        criticals = anomalies_df[anomalies_df["Severity"] == "Critical"]
-        warnings = anomalies_df[anomalies_df["Severity"] == "Warning"]
-
-        if not criticals.empty:
-            st.write("### 🚨 Critical Alerts (Suspected Plate Cloning / Fraud)")
-            for _, row in criticals.iterrows():
-                st.error(f"**{row['Plate']}** - {row['Type']} at {row['Time']} | {row['Description']}")
-
-        if not warnings.empty:
-            st.write("### ⚠️ Traffic Violations (Speeding)")
-            st.dataframe(warnings[["Time", "Plate", "Type", "Description"]], use_container_width=True)
-    else:
-        st.success("No traffic anomalies or plate cloning detected in current logs.")
-
-        from copilot import generate_fir_and_dispatch
-
-# ... inside your app.py ...
-
 elif navigation == "AI Threat & Violation Center":
     st.subheader("🚨 Automated Security & Anomaly Logs")
 
