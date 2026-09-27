@@ -241,3 +241,88 @@ elif navigation == "AI Threat & Violation Center":
             st.dataframe(warnings[["Time", "Plate", "Type", "Description"]], use_container_width=True)
     else:
         st.success("No traffic anomalies or plate cloning detected in current logs.")
+
+        from copilot import generate_fir_and_dispatch
+
+# ... inside your app.py ...
+
+elif navigation == "AI Threat & Violation Center":
+    st.subheader("🚨 Automated Security & Anomaly Logs")
+
+    anomalies_df = engine.detect_anomalies()
+
+    if not anomalies_df.empty:
+        criticals = anomalies_df[anomalies_df["Severity"] == "Critical"]
+        warnings = anomalies_df[anomalies_df["Severity"] == "Warning"]
+
+        # ---------------- CRITICAL ALERTS (CLONING / SPOOFING) ----------------
+        if not criticals.empty:
+            st.markdown("### 🚨 Critical Security Threats (Plate Cloning / Double Presence)")
+            
+            for idx, row in criticals.iterrows():
+                plate = row["Plate"]
+                
+                with st.expander(f"🛑 CRITICAL: Plate {plate} | {row['Type']}", expanded=True):
+                    col_alert, col_action = st.columns([2, 1])
+                    
+                    with col_alert:
+                        st.error(f"**Alert:** {row['Description']}")
+                        st.caption(f"Detected at: {row['Time']}")
+                    
+                    with col_action:
+                        # Button to trigger AI dispatch dossier
+                        trigger_ai = st.button("⚖️ Generate AI FIR Dossier", key=f"btn_crit_{idx}")
+
+                    if trigger_ai:
+                        # Pull trajectory history from engine for context
+                        traj = engine.get_vehicle_trajectory(plate)
+                        history = []
+                        if not traj.empty:
+                            for _, t_row in traj.iterrows():
+                                history.append({
+                                    "time": str(t_row.get("timestamp")),
+                                    "camera": t_row.get("camera_name", t_row.get("camera_id")),
+                                    "speed": t_row.get("speed_kmh", 0)
+                                })
+
+                        with st.spinner("AI Forensic Agent compiling surveillance logs and drafting legal notice..."):
+                            report = generate_fir_and_dispatch(
+                                plate_number=plate,
+                                anomaly_data=row.to_dict(),
+                                trajectory_summary=history
+                            )
+                            
+                            st.markdown("---")
+                            st.markdown(report)
+                            
+                            # Add download button for the generated dossier
+                            st.download_button(
+                                label="📥 Export Legal Incident Dossier (TXT)",
+                                data=report,
+                                file_name=f"FIR_Dossier_{plate}_{row['Time']}.txt",
+                                mime="text/plain",
+                                key=f"dl_crit_{idx}"
+                            )
+
+        # ---------------- WARNINGS (SPEEDING VIOLATIONS) ----------------
+        if not warnings.empty:
+            st.markdown("### ⚠️ Traffic Violations (Speeding)")
+            st.dataframe(warnings[["Time", "Plate", "Type", "Description"]], use_container_width=True)
+
+            selected_warn_plate = st.selectbox(
+                "Select a speeding violator to draft automated E-Challan:",
+                warnings["Plate"].unique()
+            )
+            
+            if st.button("📄 Generate E-Challan Notice via Copilot"):
+                warn_row = warnings[warnings["Plate"] == selected_warn_plate].iloc[0].to_dict()
+                with st.spinner("Drafting official violation citation..."):
+                    challan_text = generate_fir_and_dispatch(
+                        plate_number=selected_warn_plate,
+                        anomaly_data=warn_row,
+                        trajectory_summary=[]
+                    )
+                    st.info(challan_text)
+
+    else:
+        st.success("No traffic anomalies or plate cloning detected in current logs.")
